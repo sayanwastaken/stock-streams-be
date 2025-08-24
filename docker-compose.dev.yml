@@ -1,0 +1,51 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    command: >
+      redis-server
+      --appendonly yes
+      --save "60 1"
+      --loglevel warning
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # Important: mount your source for live reload
+    volumes:
+      - .:/app
+      # Keep node_modules inside the container (so host node_modules doesn't shadow it)
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      # Redis is another container: use its service name inside the network
+      - REDIS_URL=redis://default:${REDIS_PASSWORD}@redis:6379
+
+      # if Postgres is running on host machine, not in Docker:
+      # host.docker.internal resolves Windows host from inside containers
+      - DB_HOST=host.docker.internal
+      # - DB_HOST=${DB_HOST} # if you set it in .env
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DATABASE_URL=${DATABASE_URL}
+
+    ports:
+      - '5090:5090'
+    depends_on:
+      - redis
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    command: npm run start:dev
+    restart: unless-stopped
+
+volumes:
+  redis_data:
