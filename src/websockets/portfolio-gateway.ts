@@ -126,7 +126,7 @@ export class PortfolioGateway
    * Broadcast price update to all subscribed clients
    */
   broadcastPriceUpdate(priceUpdate: PriceUpdateMessage) {
-    this.server.to('portfolio_updates').emit('price_update', priceUpdate);
+    this.server.to('portfolio_updates').emit('price-update', priceUpdate);
     this.logger.debug(
       `Broadcasted price update for ${priceUpdate.stockName}: ${priceUpdate.currentPrice}`,
     );
@@ -136,9 +136,23 @@ export class PortfolioGateway
    * Broadcast portfolio update to all subscribed clients
    */
   broadcastPortfolioUpdate(portfolioUpdate: PortfolioUpdateMessage) {
-    this.server
-      .to('portfolio_updates')
-      .emit('portfolio_update', portfolioUpdate);
+    // Map the action to the correct event name
+    let eventName: string;
+    switch (portfolioUpdate.action) {
+      case 'entry_added':
+        eventName = 'portfolio-entry-added';
+        break;
+      case 'entry_updated':
+        eventName = 'portfolio-entry-updated';
+        break;
+      case 'entry_deleted':
+        eventName = 'portfolio-entry-deleted';
+        break;
+      default:
+        eventName = 'portfolio-update';
+    }
+
+    this.server.to('portfolio_updates').emit(eventName, portfolioUpdate);
     this.logger.debug(
       `Broadcasted portfolio update: ${portfolioUpdate.action} for ${portfolioUpdate.stockName}`,
     );
@@ -148,7 +162,7 @@ export class PortfolioGateway
    * Send price update to specific client
    */
   sendPriceUpdateToClient(clientId: string, priceUpdate: PriceUpdateMessage) {
-    this.server.to(clientId).emit('price_update', priceUpdate);
+    this.server.to(clientId).emit('price-update', priceUpdate);
   }
 
   /**
@@ -158,7 +172,7 @@ export class PortfolioGateway
     clientId: string,
     portfolioUpdate: PortfolioUpdateMessage,
   ) {
-    this.server.to(clientId).emit('portfolio_update', portfolioUpdate);
+    this.server.to(clientId).emit('portfolio-update', portfolioUpdate);
   }
 
   /**

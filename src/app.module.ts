@@ -25,9 +25,9 @@ import { WebsocketsModule } from './websockets/websockets.module';
     ThrottlerModule.forRoot({
       throttlers: [
         {
-          limit: 100,
-          ttl: 60,
-          blockDuration: 60, // in seconds
+          limit: 100, // max requests per minute
+          ttl: 60, // window of time in seconds for the limit
+          blockDuration: 60, // wait for 1 minute before allowing requests after the limit is reached
         },
       ],
     }),
@@ -44,7 +44,7 @@ import { WebsocketsModule } from './websockets/websockets.module';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
         entities: [Portfolio],
-        synchronize: true, // Auto-create tables from entities
+        synchronize: true, // Auto-create tables from entities should be false in prod
       }),
     }),
 

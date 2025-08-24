@@ -1,98 +1,307 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Stock Streams Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A comprehensive stock portfolio management backend API built with NestJS, featuring real-time market data integration, WebSocket support, and PostgreSQL database management.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+This backend service provides a complete solution for managing stock portfolios with support for NSE/BSE markets. It integrates with Yahoo Finance for real-time price updates and fundamental data, offers WebSocket-based real-time updates, and includes comprehensive portfolio analytics and reporting.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Features
 
-## Project setup
+- **Portfolio Management**: Add, update, and remove stock entries with comprehensive tracking
+- **Real-time Market Data**: Integration with Yahoo Finance for live stock prices and fundamentals
+- **WebSocket Support**: Real-time portfolio updates and price notifications
+- **Multi-exchange Support**: NSE and BSE market support
+- **Sector Analysis**: Portfolio breakdown by sector with performance metrics
+- **Performance Tracking**: Calculate gains/losses, present values, and investment returns
+- **Rate Limiting**: Built-in API rate limiting and throttling
+- **Validation**: Comprehensive input validation and error handling
+- **Swagger Documentation**: Interactive API documentation
 
-```bash
-$ npm install
+## Technology Stack
+
+- **Framework**: NestJS 11.x
+- **Language**: TypeScript 5.x
+- **Database**: PostgreSQL with TypeORM
+- **Cache/Queue**: Redis
+- **Real-time**: Socket.io with WebSocket support
+- **Validation**: class-validator and class-transformer
+- **Documentation**: Swagger/OpenAPI
+- **Testing**: Jest
+- **Containerization**: Docker and Docker Compose
+
+## Project Structure
+
+```
+src/
+├── app.module.ts                 # Main application module
+├── main.ts                      # Application bootstrap
+├── config/
+│   └── config.ts                # Configuration management
+├── common/                      # Shared utilities
+│   ├── filters/                 # Exception filters
+│   └── interceptors/            # Request/response interceptors
+├── controllers/
+│   └── portfolio.controller.ts   # Portfolio API endpoints
+├── dto/                         # Data transfer objects
+│   ├── create-portfolio-entry.dto.ts
+│   ├── update-portfolio-entry.dto.ts
+│   └── portfolio-query.dto.ts
+├── entities/                     # Database entities
+│   └── portfolio.entity.ts       # Portfolio data model
+├── modules/
+│   └── portfolio.module.ts       # Portfolio feature module
+├── services/                     # Business logic
+│   ├── portfolio.service.ts      # Portfolio operations
+│   └── yahoo-finance.service.ts  # Market data integration
+└── websockets/                   # Real-time communication
+    ├── portfolio-gateway.ts      # WebSocket event handling
+    ├── portfolio-websocket.service.ts
+    └── websockets.module.ts
 ```
 
-## Compile and run the project
+## Installation and Setup
 
-```bash
-# development
-$ npm run start
+### Prerequisites
 
-# watch mode
-$ npm run start:dev
+- Node.js 18+
+- PostgreSQL 12+
+- Redis 6+
+- Docker and Docker Compose (optional)
 
-# production mode
-$ npm run start:prod
+### Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+# Application
+NODE_ENV=development
+PORT=5090
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=stock_streams_db
+DATABASE_URL=postgres://user:password@localhost:5432/stock_streams_db
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+REDIS_DB=0
+
+# Rate Limiting
+RATE_LIMIT_TTL=60
+RATE_LIMIT_LIMIT=100
 ```
 
-## Run tests
+### Local Development
+
+1. **Install dependencies**:
+
+   ```bash
+   npm install
+   ```
+
+2. **Start PostgreSQL and Redis**:
+
+   ```bash
+   # Using Docker
+   docker-compose -f docker-compose.dev.yml up redis
+
+   # Or start services manually
+   ```
+
+3. **Run database migrations** (TypeORM auto-sync enabled in dev):
+
+   ```bash
+   # Database tables will be created automatically
+   ```
+
+4. **Start the application**:
+   ```bash
+   npm run start:dev
+   ```
+
+### Docker Development
 
 ```bash
-# unit tests
-$ npm run test
+# Start all services
+docker-compose -f docker-compose.dev.yml up
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Start only specific services
+docker-compose -f docker-compose.dev.yml up redis api
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Production Deployment
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Build and start production containers
+docker-compose up --build
+
+# Or use production Dockerfile
+docker build -t stream-stocks-be .
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## API Endpoints
 
-## Resources
+### Portfolio Management
 
-Check out a few resources that may come in handy when working with NestJS:
+- `POST /api/portfolio` - Add new stock to portfolio
+- `GET /api/portfolio` - Get all portfolio entries with filtering
+- `GET /api/portfolio/:id` - Get specific portfolio entry
+- `PATCH /api/portfolio/:id` - Update portfolio entry
+- `DELETE /api/portfolio/:id` - Remove stock from portfolio
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Portfolio Analytics
 
-## Support
+- `GET /api/portfolio/summary` - Get overall portfolio performance
+- `GET /api/portfolio/by-exchange` - Portfolio breakdown by exchange
+- `GET /api/portfolio/by-sector` - Portfolio breakdown by sector
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Market Data
 
-## Stay in touch
+- `POST /api/portfolio/update-all-prices` - Update all stock prices
+- `POST /api/portfolio/:id/update-market-data` - Update specific stock data
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### WebSocket Status
+
+- `GET /api/portfolio/websocket-status` - Get WebSocket connection status
+
+## WebSocket Events
+
+### Client to Server
+
+- `subscribe_portfolio` - Subscribe to portfolio updates
+- `unsubscribe_portfolio` - Unsubscribe from portfolio updates
+
+### Server to Client
+
+- `connection_status` - Connection confirmation
+- `subscription_confirmed` - Subscription status
+- `portfolio_update` - Portfolio changes (add/update/delete)
+- `price_update` - Real-time price updates
+
+## Data Models
+
+### Portfolio Entity
+
+The core data model includes:
+
+- **Stock Information**: Name, code, exchange (NSE/BSE), sector
+- **Investment Details**: Quantity, purchase price, investment amount
+- **Market Data**: Current price, price update timestamp
+- **Calculated Fields**: Present value, gain/loss amount and percentage
+- **Fundamentals**: P/E ratio, EPS, fundamentals update timestamp
+- **Metadata**: Notes, creation and update timestamps
+
+### Supported Sectors
+
+Financial Services, Information Technology, Consumer Goods, Healthcare, Energy, Automobiles, Telecommunications, Banking, Metals, Chemicals, Textiles, Cement, Power, Real Estate, Media, FMCG, Infrastructure, Oil and Gas, Pharmaceuticals, Agriculture, Other
+
+## Configuration
+
+### Database Configuration
+
+- **Type**: PostgreSQL
+- **Synchronization**: Auto-sync enabled in development (disable in production)
+- **Entities**: Portfolio entity with calculated columns
+
+### Rate Limiting
+
+- **Default**: 100 requests per minute
+- **Window**: 60 seconds
+- **Block Duration**: 60 seconds after limit exceeded
+
+### WebSocket Configuration
+
+- **Namespace**: `/portfolio`
+- **CORS**: Enabled for all origins
+- **Redis Adapter**: For horizontal scaling
+
+## Development Commands
+
+```bash
+# Development
+npm run start:dev          # Start with hot reload
+npm run start:debug        # Start with debug mode
+
+# Building
+npm run build              # Build for production
+npm run start:prod         # Start production build
+
+# Testing
+npm run test               # Run unit tests
+npm run test:watch         # Run tests in watch mode
+npm run test:e2e           # Run end-to-end tests
+npm run test:cov           # Run tests with coverage
+
+# Code Quality
+npm run lint               # Run ESLint
+npm run format             # Format code with Prettier
+```
+
+## Testing
+
+The project includes comprehensive testing setup:
+
+- **Unit Tests**: Jest-based testing for services and controllers
+- **E2E Tests**: End-to-end API testing
+- **Test Coverage**: Coverage reporting enabled
+- **Test Environment**: Node.js test environment
+
+## Error Handling
+
+- **Global Exception Filter**: Catches and formats all exceptions
+- **Validation Filter**: Handles validation errors
+- **Response Transform**: Standardizes API responses
+- **Logging Interceptor**: Logs all requests and responses
+
+## Security Features
+
+- **Input Validation**: Comprehensive DTO validation
+- **Rate Limiting**: API throttling to prevent abuse
+- **CORS Configuration**: Configurable cross-origin settings
+- **Data Sanitization**: Whitelist-based property filtering
+
+## Monitoring and Logging
+
+- **Request Logging**: All API requests logged with timing
+- **Error Logging**: Comprehensive error tracking
+- **Performance Metrics**: Request duration tracking
+- **WebSocket Monitoring**: Connection statistics and status
+
+## Deployment Considerations
+
+### Production Settings
+
+- Disable database auto-synchronization
+- Set appropriate rate limiting values
+- Configure CORS origins properly
+- Use environment-specific configurations
+- Enable proper logging levels
+
+### Scaling
+
+- Redis for WebSocket scaling
+- Database connection pooling
+- Load balancer configuration
+- Health check endpoints
+
+## Contributing
+
+1. Follow the existing code structure and patterns
+2. Add comprehensive tests for new features
+3. Update documentation for API changes
+4. Follow TypeScript and NestJS best practices
+5. Use proper error handling and validation
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is unlicensed and proprietary.
+
+## Support
+
+For issues and questions, please refer to the project documentation or contact the development team.

@@ -31,6 +31,10 @@ import { PortfolioWebSocketService } from '../websockets/portfolio-websocket.ser
 @ApiTags('portfolio')
 @Controller('portfolio')
 @UseGuards(ThrottlerGuard)
+@ApiResponse({
+  status: 429,
+  description: 'Too many requests - rate limit exceeded',
+})
 export class PortfolioController {
   constructor(
     private readonly portfolioService: PortfolioService,
@@ -41,18 +45,48 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Add a new stock to portfolio',
     description:
-      'Add a new stock entry to the global portfolio with automatic Yahoo Finance integration',
+      'Add a new stock entry to the global portfolio with automatic Yahoo Finance integration. The system will automatically generate Yahoo Finance symbols and fetch initial market data.',
   })
   @ApiResponse({
     status: 201,
     description: 'Stock added to portfolio successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 201 },
+        message: {
+          type: 'string',
+          example: 'Stock added to portfolio successfully',
+        },
+        data: { $ref: '#/components/schemas/Portfolio' },
+      },
+    },
   })
   @ApiConflictResponse({
     description:
       'Stock with same code and exchange already exists in portfolio',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 409 },
+        message: {
+          type: 'string',
+          example: 'Portfolio entry with code already exists',
+        },
+        error: { type: 'string', example: 'Conflict' },
+      },
+    },
   })
   @ApiBadRequestResponse({
-    description: 'Invalid input data',
+    description: 'Invalid input data or validation errors',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 400 },
+        message: { type: 'string', example: 'Validation failed' },
+        errors: { type: 'array', items: { type: 'string' } },
+      },
+    },
   })
   async create(@Body() createPortfolioEntryDto: CreatePortfolioEntryDto) {
     return {
@@ -66,11 +100,119 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Get all portfolio entries',
     description:
-      'Retrieve all stocks in the portfolio with filtering, sorting, and pagination',
+      'Retrieve all stocks in the portfolio with advanced filtering, sorting, and pagination. Supports filtering by exchange, sector, profitability, and search queries.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number for pagination (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10, max: 100)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search query for stock name or code',
+    example: 'RELIANCE',
+  })
+  @ApiQuery({
+    name: 'exchange',
+    required: false,
+    enum: ['NSE', 'BSE'],
+    description: 'Filter by exchange (NSE or BSE)',
+    example: 'NSE',
+  })
+  @ApiQuery({
+    name: 'sector',
+    required: false,
+    enum: [
+      'Financial Services',
+      'Information Technology',
+      'Consumer Goods',
+      'Healthcare',
+      'Energy',
+      'Automobiles',
+      'Telecommunications',
+      'Banking',
+      'Metals',
+      'Chemicals',
+      'Textiles',
+      'Cement',
+      'Power',
+      'Real Estate',
+      'Media',
+      'FMCG',
+      'Infrastructure',
+      'Oil and Gas',
+      'Pharmaceuticals',
+      'Agriculture',
+      'Other',
+    ],
+    description: 'Filter by sector',
+    example: 'Financial Services',
+  })
+  @ApiQuery({
+    name: 'profitableOnly',
+    required: false,
+    type: Boolean,
+    description: 'Filter to show only profitable stocks',
+    example: true,
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: [
+      'stockName',
+      'stockCode',
+      'exchange',
+      'sector',
+      'quantity',
+      'purchasePrice',
+      'currentPrice',
+      'gainLossAmount',
+      'gainLossPercentage',
+      'createdAt',
+      'updatedAt',
+    ],
+    description: 'Field to sort by',
+    example: 'stockName',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    description: 'Sort order (ascending or descending)',
+    example: 'ASC',
   })
   @ApiResponse({
     status: 200,
     description: 'Portfolio entries retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: {
+          type: 'string',
+          example: 'Portfolio entries retrieved successfully',
+        },
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Portfolio' },
+        },
+        total: { type: 'number', example: 25 },
+        page: { type: 'number', example: 1 },
+        limit: { type: 'number', example: 10 },
+        totalPages: { type: 'number', example: 3 },
+      },
+    },
   })
   async findAll(@Query() query: PortfolioQueryDto) {
     const result = await this.portfolioService.findAll(query);
@@ -85,11 +227,35 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Get portfolio summary',
     description:
-      'Get overall portfolio performance summary including total investment, current value, and gain/loss',
+      'Get comprehensive portfolio performance summary including total investment, current market value, overall gain/loss, and performance metrics across all holdings.',
   })
   @ApiResponse({
     status: 200,
     description: 'Portfolio summary retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: {
+          type: 'string',
+          example: 'Portfolio summary retrieved successfully',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            totalEntries: { type: 'number', example: 25 },
+            totalInvestment: { type: 'number', example: 150000.0 },
+            currentValue: { type: 'number', example: 165000.0 },
+            totalGainLoss: { type: 'number', example: 15000.0 },
+            totalGainLossPercentage: { type: 'number', example: 10.0 },
+            averageGainLossPercentage: { type: 'number', example: 8.5 },
+            profitableEntries: { type: 'number', example: 18 },
+            lossEntries: { type: 'number', example: 7 },
+            lastUpdated: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   async getSummary() {
     return {
@@ -103,11 +269,46 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Get portfolio breakdown by exchange',
     description:
-      'Get portfolio performance broken down by NSE and BSE exchanges',
+      'Get detailed portfolio performance breakdown by NSE and BSE exchanges, including investment amounts, current values, and performance metrics for each exchange.',
   })
   @ApiResponse({
     status: 200,
     description: 'Portfolio breakdown by exchange retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: {
+          type: 'string',
+          example: 'Portfolio breakdown by exchange retrieved successfully',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            NSE: {
+              type: 'object',
+              properties: {
+                totalInvestment: { type: 'number', example: 100000.0 },
+                currentValue: { type: 'number', example: 110000.0 },
+                gainLoss: { type: 'number', example: 10000.0 },
+                gainLossPercentage: { type: 'number', example: 10.0 },
+                entryCount: { type: 'number', example: 15 },
+              },
+            },
+            BSE: {
+              type: 'object',
+              properties: {
+                totalInvestment: { type: 'number', example: 50000.0 },
+                currentValue: { type: 'number', example: 55000.0 },
+                gainLoss: { type: 'number', example: 5000.0 },
+                gainLossPercentage: { type: 'number', example: 10.0 },
+                entryCount: { type: 'number', example: 10 },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   async getByExchange() {
     return {
@@ -121,16 +322,42 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Get portfolio breakdown by sector',
     description:
-      'Get portfolio performance broken down by industry sectors with sector-level analytics',
+      'Get comprehensive portfolio performance breakdown grouped by sector, including investment amounts, performance metrics, and average fundamental ratios for each sector.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Portfolio breakdown by sector retrieved successfully',
+    description: 'Portfolio sector breakdown retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: {
+          type: 'string',
+          example: 'Portfolio sector breakdown retrieved successfully',
+        },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              sector: { type: 'string', example: 'Financial Services' },
+              totalInvestment: { type: 'number', example: 50000.0 },
+              currentValue: { type: 'number', example: 55000.0 },
+              gainLoss: { type: 'number', example: 5000.0 },
+              gainLossPercentage: { type: 'number', example: 10.0 },
+              entryCount: { type: 'number', example: 8 },
+              averagePERatio: { type: 'number', example: 15.5 },
+              averageEPS: { type: 'number', example: 25.75 },
+            },
+          },
+        },
+      },
+    },
   })
   async getBySector() {
     return {
       statusCode: HttpStatus.OK,
-      message: 'Portfolio breakdown by sector retrieved successfully',
+      message: 'Portfolio sector breakdown retrieved successfully',
       data: await this.portfolioService.getBySector(),
     };
   }
@@ -139,11 +366,28 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Update all stock prices',
     description:
-      'Fetch latest prices and fundamentals for all stocks in the portfolio',
+      'Fetch latest market data including prices and fundamental ratios for all stocks in the portfolio. This operation may take time depending on the number of stocks and market data availability.',
   })
   @ApiResponse({
     status: 200,
-    description: 'Market data update initiated successfully',
+    description: 'Market data update completed successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: { type: 'string', example: 'Market data update completed' },
+        data: {
+          type: 'object',
+          properties: {
+            totalStocks: { type: 'number', example: 25 },
+            updatedStocks: { type: 'number', example: 23 },
+            failedUpdates: { type: 'number', example: 2 },
+            updateDuration: { type: 'number', example: 15000 },
+            lastUpdated: { type: 'string', format: 'date-time' },
+          },
+        },
+      },
+    },
   })
   async updateAllMarketData() {
     return {
@@ -157,11 +401,32 @@ export class PortfolioController {
   @ApiOperation({
     summary: 'Get WebSocket connection status',
     description:
-      'Get information about WebSocket connections for real-time updates',
+      'Get real-time information about WebSocket connections, active clients, and connection statistics for monitoring real-time update delivery.',
   })
   @ApiResponse({
     status: 200,
     description: 'WebSocket status retrieved successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        statusCode: { type: 'number', example: 200 },
+        message: {
+          type: 'string',
+          example: 'WebSocket status retrieved successfully',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            totalConnections: { type: 'number', example: 15 },
+            activeConnections: { type: 'number', example: 12 },
+            disconnectedClients: { type: 'number', example: 3 },
+            lastConnection: { type: 'string', format: 'date-time' },
+            lastDisconnection: { type: 'string', format: 'date-time' },
+            uptime: { type: 'number', example: 86400000 },
+          },
+        },
+      },
+    },
   })
   async getWebSocketStatus() {
     return {
@@ -174,13 +439,12 @@ export class PortfolioController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get a specific portfolio entry',
-    description: 'Retrieve a single stock entry from the portfolio by ID',
+    description: 'Retrieve a single portfolio entry by its unique ID',
   })
   @ApiParam({
     name: 'id',
-    type: 'string',
-    format: 'uuid',
-    description: 'Portfolio entry ID',
+    description: 'Portfolio entry ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({
     status: 200,

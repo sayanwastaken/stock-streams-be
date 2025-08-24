@@ -7,6 +7,7 @@ import {
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum Exchange {
   NSE = 'NSE',
@@ -39,13 +40,30 @@ export enum Sector {
 
 @Entity('portfolio')
 export class Portfolio {
+  @ApiProperty({
+    description: 'Unique identifier for the portfolio entry',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: 'string',
+    format: 'uuid',
+  })
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   // Stock Information
+  @ApiProperty({
+    description: 'Name of the stock/company as registered on the exchange',
+    example: 'Reliance Industries Limited',
+    type: 'string',
+  })
   @Column({ name: 'stock_name', type: 'text' })
   stockName: string;
 
+  @ApiProperty({
+    description: 'Stock exchange where the stock is listed',
+    enum: Exchange,
+    example: Exchange.NSE,
+    enumName: 'Exchange',
+  })
   @Column({
     name: 'exchange',
     type: 'enum',
@@ -53,12 +71,31 @@ export class Portfolio {
   })
   exchange: Exchange;
 
+  @ApiProperty({
+    description: 'Official stock code/symbol as listed on the exchange',
+    example: 'RELIANCE',
+    type: 'string',
+  })
   @Column({ name: 'stock_code', type: 'text' })
   stockCode: string;
 
+  @ApiProperty({
+    description:
+      'Yahoo Finance symbol for fetching market data (auto-generated)',
+    example: 'RELIANCE.NS',
+    type: 'string',
+    nullable: true,
+  })
   @Column({ name: 'yahoo_symbol', type: 'text', nullable: true })
   yahooSymbol: string;
 
+  @ApiProperty({
+    description: 'Business sector/industry classification of the stock',
+    enum: Sector,
+    example: Sector.ENERGY,
+    default: Sector.OTHER,
+    enumName: 'Sector',
+  })
   @Column({
     name: 'sector',
     type: 'enum',
@@ -68,6 +105,12 @@ export class Portfolio {
   sector: Sector;
 
   // Investment Details
+  @ApiProperty({
+    description: 'Number of shares purchased (supports fractional shares)',
+    example: 10.5,
+    type: 'number',
+    minimum: 0.0001,
+  })
   @Column({
     name: 'quantity',
     type: 'decimal',
@@ -76,6 +119,12 @@ export class Portfolio {
   })
   quantity: number;
 
+  @ApiProperty({
+    description: 'Purchase price per share in local currency',
+    example: 2500.5,
+    type: 'number',
+    minimum: 0.01,
+  })
   @Column({
     name: 'purchase_price',
     type: 'decimal',
@@ -85,6 +134,13 @@ export class Portfolio {
   purchasePrice: number;
 
   // Calculated field - investment amount (quantity * purchase_price)
+  @ApiProperty({
+    description:
+      'Total investment amount (quantity × purchase price) - auto-calculated',
+    example: 26255.25,
+    type: 'number',
+    nullable: true,
+  })
   @Column({
     name: 'investment_amount',
     type: 'decimal',
@@ -95,6 +151,12 @@ export class Portfolio {
   investmentAmount: number;
 
   // Current Market Data
+  @ApiProperty({
+    description: 'Current market price per share (updated from Yahoo Finance)',
+    example: 2750.75,
+    type: 'number',
+    nullable: true,
+  })
   @Column({
     name: 'current_price',
     type: 'decimal',
@@ -104,6 +166,13 @@ export class Portfolio {
   })
   currentPrice: number;
 
+  @ApiProperty({
+    description: 'Timestamp when the current price was last updated',
+    example: '2024-01-15T10:30:00Z',
+    type: 'string',
+    format: 'date-time',
+    nullable: true,
+  })
   @Column({
     name: 'price_updated_at',
     type: 'timestamptz',
@@ -112,6 +181,14 @@ export class Portfolio {
   priceUpdatedAt: Date;
 
   // Generated columns - calculated fields
+  @ApiProperty({
+    description:
+      'Current market value of the investment (quantity × current price) - auto-calculated',
+    example: 28882.88,
+    type: 'number',
+    nullable: true,
+    readOnly: true,
+  })
   @Column({
     name: 'present_value',
     type: 'decimal',
@@ -124,6 +201,14 @@ export class Portfolio {
   })
   presentValue: number;
 
+  @ApiProperty({
+    description:
+      'Absolute gain/loss amount (present value - investment amount) - auto-calculated',
+    example: 2627.63,
+    type: 'number',
+    nullable: true,
+    readOnly: true,
+  })
   @Column({
     name: 'gain_loss_amount',
     type: 'decimal',
@@ -136,6 +221,14 @@ export class Portfolio {
   })
   gainLossAmount: number;
 
+  @ApiProperty({
+    description:
+      'Percentage gain/loss relative to investment amount - auto-calculated',
+    example: 10.0,
+    type: 'number',
+    nullable: true,
+    readOnly: true,
+  })
   @Column({
     name: 'gain_loss_percentage',
     type: 'decimal',
@@ -149,6 +242,12 @@ export class Portfolio {
   gainLossPercentage: number;
 
   // Fundamental Data
+  @ApiProperty({
+    description: 'Price-to-Earnings ratio from Yahoo Finance',
+    example: 15.5,
+    type: 'number',
+    nullable: true,
+  })
   @Column({
     name: 'pe_ratio',
     type: 'decimal',
@@ -158,6 +257,12 @@ export class Portfolio {
   })
   peRatio: number;
 
+  @ApiProperty({
+    description: 'Earnings Per Share from Yahoo Finance',
+    example: 25.75,
+    type: 'number',
+    nullable: true,
+  })
   @Column({
     name: 'eps',
     type: 'decimal',
@@ -167,6 +272,13 @@ export class Portfolio {
   })
   eps: number;
 
+  @ApiProperty({
+    description: 'Timestamp when fundamental data was last updated',
+    example: '2024-01-15T10:30:00Z',
+    type: 'string',
+    format: 'date-time',
+    nullable: true,
+  })
   @Column({
     name: 'fundamentals_updated_at',
     type: 'timestamptz',
@@ -175,12 +287,31 @@ export class Portfolio {
   fundamentalsUpdatedAt: Date;
 
   // Metadata
+  @ApiProperty({
+    description: 'Additional notes or comments about the investment',
+    example:
+      'Long-term investment in energy sector. Strong fundamentals and growth potential.',
+    type: 'string',
+    nullable: true,
+  })
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string;
 
+  @ApiProperty({
+    description: 'Timestamp when the portfolio entry was created',
+    example: '2024-01-01T09:00:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
+  @ApiProperty({
+    description: 'Timestamp when the portfolio entry was last updated',
+    example: '2024-01-15T10:30:00Z',
+    type: 'string',
+    format: 'date-time',
+  })
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 

@@ -324,23 +324,32 @@ export class PortfolioService {
       {} as Record<string, Portfolio[]>,
     );
 
-    const totalPortfolioInvestment = portfolioEntries.reduce(
-      (sum, entry) => sum + entry.investmentAmount,
-      0,
-    );
+    const totalPortfolioInvestment = portfolioEntries.reduce((sum, entry) => {
+      // Use stored investmentAmount or calculate it if null/invalid
+      const investmentAmount =
+        entry.investmentAmount || entry.calculateInvestmentAmount();
+      return sum + Number(investmentAmount || 0);
+    }, 0);
 
     return Object.entries(exchangeGroups).map(([exchange, entries]) => {
-      const totalInvestment = entries.reduce(
-        (sum, entry) => sum + entry.investmentAmount,
-        0,
-      );
+      const totalInvestment = entries.reduce((sum, entry) => {
+        // Use stored investmentAmount or calculate it if null/invalid
+        const investmentAmount =
+          entry.investmentAmount || entry.calculateInvestmentAmount();
+        return sum + Number(investmentAmount || 0);
+      }, 0);
       const totalPresentValue = entries.reduce((sum, entry) => {
         const presentValue = entry.calculatePresentValue();
-        return sum + (presentValue || 0);
+        return sum + Number(presentValue || 0);
       }, 0);
-      const totalGainLoss = totalPresentValue - totalInvestment;
+
+      // Handle case where currentPrice might be null (no market data yet)
+      const totalGainLoss =
+        totalPresentValue > 0 ? totalPresentValue - totalInvestment : 0;
       const gainLossPercentage =
-        totalInvestment > 0 ? (totalGainLoss / totalInvestment) * 100 : 0;
+        totalInvestment > 0 && totalPresentValue > 0
+          ? (totalGainLoss / totalInvestment) * 100
+          : 0;
       const portfolioPercentage =
         totalPortfolioInvestment > 0
           ? (totalInvestment / totalPortfolioInvestment) * 100
@@ -349,9 +358,9 @@ export class PortfolioService {
       return {
         exchange,
         stockCount: entries.length,
-        totalInvestment,
-        totalPresentValue,
-        totalGainLoss,
+        totalInvestment: Number(totalInvestment.toFixed(2)),
+        totalPresentValue: Number(totalPresentValue.toFixed(2)),
+        totalGainLoss: Number(totalGainLoss.toFixed(2)),
         gainLossPercentage: Number(gainLossPercentage.toFixed(2)),
         portfolioPercentage: Number(portfolioPercentage.toFixed(2)),
       };
@@ -375,23 +384,32 @@ export class PortfolioService {
       {} as Record<string, Portfolio[]>,
     );
 
-    const totalPortfolioInvestment = portfolioEntries.reduce(
-      (sum, entry) => sum + entry.investmentAmount,
-      0,
-    );
+    const totalPortfolioInvestment = portfolioEntries.reduce((sum, entry) => {
+      // Use stored investmentAmount or calculate it if null/invalid
+      const investmentAmount =
+        entry.investmentAmount || entry.calculateInvestmentAmount();
+      return sum + Number(investmentAmount || 0);
+    }, 0);
 
     return Object.entries(sectorGroups).map(([sector, entries]) => {
-      const totalInvestment = entries.reduce(
-        (sum, entry) => sum + entry.investmentAmount,
-        0,
-      );
+      const totalInvestment = entries.reduce((sum, entry) => {
+        // Use stored investmentAmount or calculate it if null/invalid
+        const investmentAmount =
+          entry.investmentAmount || entry.calculateInvestmentAmount();
+        return sum + Number(investmentAmount || 0);
+      }, 0);
       const totalPresentValue = entries.reduce((sum, entry) => {
         const presentValue = entry.calculatePresentValue();
-        return sum + (presentValue || 0);
+        return sum + Number(presentValue || 0);
       }, 0);
-      const totalGainLoss = totalPresentValue - totalInvestment;
+
+      // Handle case where currentPrice might be null (no market data yet)
+      const totalGainLoss =
+        totalPresentValue > 0 ? totalPresentValue - totalInvestment : 0;
       const gainLossPercentage =
-        totalInvestment > 0 ? (totalGainLoss / totalInvestment) * 100 : 0;
+        totalInvestment > 0 && totalPresentValue > 0
+          ? (totalGainLoss / totalInvestment) * 100
+          : 0;
       const portfolioPercentage =
         totalPortfolioInvestment > 0
           ? (totalInvestment / totalPortfolioInvestment) * 100
@@ -401,16 +419,18 @@ export class PortfolioService {
       const entriesWithPE = entries.filter((entry) => entry.peRatio);
       const avgPeRatio =
         entriesWithPE.length > 0
-          ? entriesWithPE.reduce((sum, entry) => sum + entry.peRatio, 0) /
-            entriesWithPE.length
+          ? entriesWithPE.reduce(
+              (sum, entry) => sum + Number(entry.peRatio || 0),
+              0,
+            ) / entriesWithPE.length
           : null;
 
       return {
         sector,
         stockCount: entries.length,
-        totalInvestment,
-        totalPresentValue,
-        totalGainLoss,
+        totalInvestment: Number(totalInvestment.toFixed(2)),
+        totalPresentValue: Number(totalPresentValue.toFixed(2)),
+        totalGainLoss: Number(totalGainLoss.toFixed(2)),
         gainLossPercentage: Number(gainLossPercentage.toFixed(2)),
         portfolioPercentage: Number(portfolioPercentage.toFixed(2)),
         avgPeRatio: avgPeRatio ? Number(avgPeRatio.toFixed(2)) : null,

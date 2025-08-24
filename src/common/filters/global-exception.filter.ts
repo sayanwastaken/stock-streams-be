@@ -80,7 +80,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private handleDatabaseError(error: QueryFailedError): string {
     const { message } = error;
 
-    // Handle common PostgreSQL errors
+    // Handle common psql errors
     if (message.includes('duplicate key value')) {
       return 'A record with this information already exists';
     }
