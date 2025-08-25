@@ -12,7 +12,6 @@ import config from './config/config';
 import { Portfolio } from './entities';
 import { PortfolioModule } from './modules/portfolio.module';
 import { WebsocketsModule } from './websockets/websockets.module';
-import { RedisService } from './services/redis.service';
 
 @Module({
   imports: [
@@ -57,6 +56,6 @@ import { RedisService } from './services/redis.service';
   ],
 
   controllers: [AppController],
-  providers: [AppService, RedisService],
+  providers: [AppService],
 })
 export class AppModule {}

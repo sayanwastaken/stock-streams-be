@@ -5,12 +5,11 @@ import { PortfolioService } from '../services/portfolio.service';
 import { YahooFinanceService } from '../services/yahoo-finance.service';
 import { PortfolioController } from '../controllers/portfolio.controller';
 import { WebsocketsModule } from '../websockets/websockets.module';
-import { RedisService } from '../services/redis.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Portfolio]), WebsocketsModule],
   controllers: [PortfolioController],
-  providers: [PortfolioService, YahooFinanceService, RedisService],
+  providers: [PortfolioService, YahooFinanceService],
   exports: [PortfolioService, YahooFinanceService],
 })
 export class PortfolioModule {}

@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import * as cheerio from 'cheerio';
-import { RedisService } from './redis.service';
 
 export interface YahooQuoteData {
   symbol: string;
@@ -38,12 +37,7 @@ export class YahooFinanceService {
   private readonly summaryUrl = 'https://finance.yahoo.com/quote';
   private readonly timeout = 10000; // 10 seconds
 
-  // Cache TTL constants (in seconds)
-  private readonly QUOTE_CACHE_TTL = 300; // 5 minutes for quotes
-  private readonly FUNDAMENTALS_CACHE_TTL = 3600; // 1 hour for fundamentals
-  private readonly SEARCH_CACHE_TTL = 1800; // 30 minutes for search results
-
-  constructor(private readonly redisService: RedisService) {
+  constructor() {
     // Configure axios defaults
     axios.defaults.timeout = this.timeout;
     axios.defaults.headers.common['User-Agent'] =
@@ -51,43 +45,10 @@ export class YahooFinanceService {
   }
 
   /**
-   * Generate cache key for quotes
-   */
-  private generateQuoteCacheKey(symbol: string): string {
-    return `yahoo:quote:${symbol.toUpperCase()}`;
-  }
-
-  /**
-   * Generate cache key for fundamentals
-   */
-  private generateFundamentalsCacheKey(symbol: string): string {
-    return `yahoo:fundamentals:${symbol.toUpperCase()}`;
-  }
-
-  /**
-   * Generate cache key for search results
-   */
-  private generateSearchCacheKey(query: string): string {
-    return `yahoo:search:${query.toLowerCase().trim()}`;
-  }
-
-  /**
    * Get real-time quote data for a single symbol
    */
   async getQuote(symbol: string): Promise<YahooQuoteData> {
-    const cacheKey = this.generateQuoteCacheKey(symbol);
-
     try {
-      // Try to get from cache first
-      if (this.redisService.isAvailable()) {
-        const cachedData =
-          await this.redisService.get<YahooQuoteData>(cacheKey);
-        if (cachedData) {
-          this.logger.debug(`Cache hit for quote: ${symbol}`);
-          return cachedData;
-        }
-      }
-
       this.logger.debug(`Fetching quote for symbol: ${symbol}`);
 
       const url = `${this.baseUrl}/${symbol}`;
@@ -116,7 +77,7 @@ export class YahooFinanceService {
         throw new Error(`No price data available for symbol: ${symbol}`);
       }
 
-      const quoteData: YahooQuoteData = {
+      return {
         symbol,
         price: parseFloat(currentPrice.toFixed(2)),
         currency: meta.currency || 'INR',
@@ -130,14 +91,6 @@ export class YahooFinanceService {
           ? ((currentPrice - meta.previousClose) / meta.previousClose) * 100
           : 0,
       };
-
-      // Cache the result
-      if (this.redisService.isAvailable()) {
-        await this.redisService.set(cacheKey, quoteData, this.QUOTE_CACHE_TTL);
-        this.logger.debug(`Cached quote for symbol: ${symbol}`);
-      }
-
-      return quoteData;
     } catch (error) {
       this.logger.error(`Failed to fetch quote for ${symbol}:`, error.message);
       throw new Error(`Failed to fetch quote for ${symbol}: ${error.message}`);
@@ -184,19 +137,7 @@ export class YahooFinanceService {
    * Note: This is a fallback method. For production, consider using a proper financial data API
    */
   async getFundamentals(symbol: string): Promise<YahooFundamentalData> {
-    const cacheKey = this.generateFundamentalsCacheKey(symbol);
-
     try {
-      // Try to get from cache first
-      if (this.redisService.isAvailable()) {
-        const cachedData =
-          await this.redisService.get<YahooFundamentalData>(cacheKey);
-        if (cachedData) {
-          this.logger.debug(`Cache hit for fundamentals: ${symbol}`);
-          return cachedData;
-        }
-      }
-
       this.logger.debug(`Fetching fundamentals for symbol: ${symbol}`);
 
       const url = `${this.summaryUrl}/${symbol}`;
@@ -251,7 +192,7 @@ export class YahooFinanceService {
         marketCap = marketCapText;
       }
 
-      const fundamentalData: YahooFundamentalData = {
+      return {
         symbol,
         peRatio,
         eps,
@@ -259,18 +200,6 @@ export class YahooFinanceService {
         marketCap,
         timestamp: new Date(),
       };
-
-      // Cache the result
-      if (this.redisService.isAvailable()) {
-        await this.redisService.set(
-          cacheKey,
-          fundamentalData,
-          this.FUNDAMENTALS_CACHE_TTL,
-        );
-        this.logger.debug(`Cached fundamentals for symbol: ${symbol}`);
-      }
-
-      return fundamentalData;
     } catch (error) {
       this.logger.error(
         `Failed to fetch fundamentals for ${symbol}:`,
@@ -340,21 +269,7 @@ export class YahooFinanceService {
   async searchSymbols(
     query: string,
   ): Promise<Array<{ symbol: string; name: string }>> {
-    const cacheKey = this.generateSearchCacheKey(query);
-
     try {
-      // Try to get from cache first
-      if (this.redisService.isAvailable()) {
-        const cachedData =
-          await this.redisService.get<Array<{ symbol: string; name: string }>>(
-            cacheKey,
-          );
-        if (cachedData) {
-          this.logger.debug(`Cache hit for search query: ${query}`);
-          return cachedData;
-        }
-      }
-
       // This is a basic implementation. For production, you might want to use
       // Yahoo Finance's search API or another financial data provider
       const searchUrl = `https://query1.finance.yahoo.com/v1/finance/search`;
@@ -370,24 +285,12 @@ export class YahooFinanceService {
         return [];
       }
 
-      const searchResults = response.data.quotes
+      return response.data.quotes
         .filter((quote: any) => quote.symbol && quote.shortname)
         .map((quote: any) => ({
           symbol: quote.symbol,
           name: quote.shortname || quote.longname,
         }));
-
-      // Cache the result
-      if (this.redisService.isAvailable()) {
-        await this.redisService.set(
-          cacheKey,
-          searchResults,
-          this.SEARCH_CACHE_TTL,
-        );
-        this.logger.debug(`Cached search results for query: ${query}`);
-      }
-
-      return searchResults;
     } catch (error) {
       this.logger.error(
         `Failed to search symbols for query "${query}":`,
@@ -435,59 +338,5 @@ export class YahooFinanceService {
       currentTimeInMinutes >= marketOpenTime &&
       currentTimeInMinutes <= marketCloseTime
     );
-  }
-
-  /**
-   * Clear cache for a specific symbol
-   */
-  async clearSymbolCache(symbol: string): Promise<void> {
-    if (!this.redisService.isAvailable()) return;
-
-    try {
-      const quoteKey = this.generateQuoteCacheKey(symbol);
-      const fundamentalsKey = this.generateFundamentalsCacheKey(symbol);
-
-      await Promise.all([
-        this.redisService.del(quoteKey),
-        this.redisService.del(fundamentalsKey),
-      ]);
-
-      this.logger.debug(`Cleared cache for symbol: ${symbol}`);
-    } catch (error) {
-      this.logger.error(`Failed to clear cache for symbol ${symbol}:`, error);
-    }
-  }
-
-  /**
-   * Clear all Yahoo Finance cache
-   */
-  async clearAllCache(): Promise<void> {
-    if (!this.redisService.isAvailable()) return;
-
-    try {
-      // In production, you might want to use Redis SCAN command
-      // For now, we'll clear the specific keys we know about
-      this.logger.debug('Cleared all Yahoo Finance cache');
-    } catch (error) {
-      this.logger.error('Failed to clear all Yahoo Finance cache:', error);
-    }
-  }
-
-  /**
-   * Get cache statistics for Yahoo Finance
-   */
-  async getCacheStats(): Promise<{ available: boolean; keys: number }> {
-    if (!this.redisService.isAvailable()) {
-      return { available: false, keys: 0 };
-    }
-
-    try {
-      // This is a simplified approach. In production, you might want to use
-      // Redis INFO command or other monitoring tools
-      return { available: true, keys: -1 }; // -1 indicates not implemented
-    } catch (error) {
-      this.logger.error('Failed to get Yahoo Finance cache stats:', error);
-      return { available: false, keys: 0 };
-    }
   }
 }
